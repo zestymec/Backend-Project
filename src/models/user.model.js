@@ -1,6 +1,6 @@
-import mongoose, {Schema} from "mongoose";
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
+import mongoose, { Schema } from "mongoose";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
@@ -16,7 +16,7 @@ const userSchema = new Schema(
             type: String,
             required: true,
             unique: true,
-            lowecase: true,
+            lowercase: true, // 📝 'lowecase' ki spelling ko sahi kiya
             trim: true, 
         },
         fullName: {
@@ -45,22 +45,30 @@ const userSchema = new Schema(
         refreshToken: {
             type: String
         }
-
     },
     {
         timestamps: true
     }
-)
+);
 
+// 🚀 Safe, Crash-proof Pre-Save Hook with explicitly bound context
 userSchema.pre("save", async function (next) {
-    if(!this.isModified("password")) return next();
+    if (!this.isModified("password")) return next();
 
-    this.password = await bcrypt.hash(this.password, 10)
-    next()
-})
+    try {
+        this.password = await bcrypt.hash(this.password, 10);
+        return next(); // Explicit return sequence taaki validation framework block na ho
+    } catch (error) {
+        return next(error); // Error safely pipeline me pass ho jayega
+    }
+});
 
 userSchema.methods.isPasswordCorrect = async function(password){
-    return await bcrypt.compare(password, this.password)
+    try {
+        return await bcrypt.compare(password, this.password);
+    } catch (error) {
+        return false;
+    }
 }
 
 userSchema.methods.generateAccessToken = function(){
@@ -77,11 +85,11 @@ userSchema.methods.generateAccessToken = function(){
         }
     )
 }
+
 userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {
             _id: this._id,
-            
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
@@ -90,4 +98,4 @@ userSchema.methods.generateRefreshToken = function(){
     )
 }
 
-export const User = mongoose.model("User", userSchema)
+export const User = mongoose.model("User", userSchema);
