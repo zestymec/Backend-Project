@@ -51,16 +51,10 @@ const userSchema = new Schema(
     }
 );
 
-// 🚀 Safe, Crash-proof Pre-Save Hook with explicitly bound context
-userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+    if (!this.isModified("password")) return;
 
-    try {
-        this.password = await bcrypt.hash(this.password, 10);
-        return next(); // Explicit return sequence taaki validation framework block na ho
-    } catch (error) {
-        return next(error); // Error safely pipeline me pass ho jayega
-    }
+    this.password = await bcrypt.hash(this.password, 10);
 });
 
 userSchema.methods.isPasswordCorrect = async function(password){
